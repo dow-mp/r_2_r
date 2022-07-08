@@ -1,7 +1,8 @@
-import * as React from 'react';
+// import * as React from 'react';
+import { useState } from 'react';
 
 const App = () => {
-  console.log('App renders');
+  //console.log('App renders');
   const stories = [
     {
       title: 'React',
@@ -28,34 +29,29 @@ const App = () => {
       objectID: 2,
     },
   ];
+  // lifting state up from Search component to App component for use in all children components (currently, Search AND List)
+  const [searchTerm, setSearchTerm] = useState('React');
 
   // add a callback handler function to App component to handle what happens when Search component renders - this function will be passed into Search component as props
   const handleSearch = (e) => {
-    // console.log(e) logs EVERY letter that gets added to the input field (i.e. every change made to the field)
-    // console.log(e)
-    
-    // console.log(e.target.value) drills down to only log the specific character entered into the input field 
-    //it continues to log each letter as a change event and therefore the console log looks like:
-    // p
-    // py
-    // pyt
-    // pyth
-    // pytho
-    // python
-    console.log(e.target.value);
+    setSearchTerm(e.target.value);
   };
+
+  const searchedStories = stories.filter(function (story) {
+    return story.title.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div>
       <h1>My Hacker Stories</h1>
 
       {/* passing in the handleSearch callback handler function as props to the Search component */}
-      <Search onSearch={handleSearch}/>
+      <Search onSearch={handleSearch} search={searchTerm}/>
 
       <hr />
       
       {/*utilize the List component within the App component*/}
-      <List list={stories}/>
+      <List list={searchedStories}/>
 
       {/* creating another instance of list element - practicing component instantiation */}
       {/* <List /> */}
@@ -85,34 +81,22 @@ const List = (props) => {
 };
 
 const Search = (props) => {
-  console.log('Search renders');
-  let [searchTerm, setSearchTerm] = React.useState('');
-  const handleChange = (e) => {
-    setSearchTerm(e.target.value);
-    // console.log(e) logs EVERY letter that gets added to the input field (i.e. every change made to the field)
-    // console.log(e)
-    
-    // console.log(e.target.value) drills down to only log the specific character entered into the input field 
-    //it continues to log each letter as a change event and therefore the console log looks like:
-    // p
-    // py
-    // pyt
-    // pyth
-    // pytho
-    // python
-    // console.log(e.target.value);
-
-    // add a call to the callback handler function that was passed in as props from parent component <App/>
-    props.onSearch(e);
-  };
+  //console.log('Search renders');
 
   return (
     <div>
       <label htmlFor="search">Search: </label>
-      <input id="search" type="text" onChange={handleChange}/>
-      <p> Searching for <strong> {searchTerm} </strong>.</p>
+      <input 
+        id="search" 
+        type="text"
+        value={props.search}
+        onChange={props.onSearch}
+      />
     </div>
   );
 };
 
 export default App;
+
+
+// Friday 7/8/22 Left off in Road to React advanced props handling (destructuring, etc.)
