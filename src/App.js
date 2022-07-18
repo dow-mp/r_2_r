@@ -1,6 +1,20 @@
 // import * as React from 'react';
 import { useState, useEffect } from 'react';
 
+// initiate building custom hook to encompass functionality of useState and useEffect hooks
+// use generic parameters (instead of searchTerm/setSearchTerm) so that this hook can be resused as needed throughout the application
+const useSemiPersistentState = (key, initialState) => {
+  const [value, setValue] = useState(
+    localStorage.getItem(key) || initialState
+  );
+
+  useEffect(() => {
+    localStorage.setItem(key, value);
+  }, [value, key]);
+
+  return [value, setValue];
+};
+
 const App = () => {
   //console.log('App renders');
   const stories = [
@@ -29,18 +43,20 @@ const App = () => {
       objectID: 2,
     },
   ];
-  // lifting state up from Search component to App component for use in all children components (currently, Search AND List)
-  const [searchTerm, setSearchTerm] = useState(
-    // retrieving the 'search' item from local storage if it exists, and if not using the initial state of 'React'
-    localStorage.getItem('search') || 'React'
-  );
 
-  // add the useEffect hook to ensure that our 'search' item from local storage is updated in EVERY instance where the state changes in order to prevent bugs elsewhere in the app
-  //useEffect takes in two params - 1. a function to perform when changes are made to 2. the array of dependencies 
-  
-  useEffect(() => { // first arg = anon function that sets the localStorage of item 'search' to the value of searchTerm
-    localStorage.setItem('search', searchTerm);
-  }, [searchTerm] /* second arg = array of dependencies, if the state of any of these values change, the funtion prior will run EACH TIME a change in state is detected*/);
+  // previous use of useState and useEffect hooks prior to building custom hook
+    /* const [searchTerm, setSearchTerm] = useState(
+      localStorage.getItem('search') || 'React'
+    );
+    
+    useEffect(() => { 
+      localStorage.setItem('search', searchTerm);
+    }, [searchTerm]); */
+
+  const [searchTerm, setSearchTerm] = useSemiPersistentState(
+    'search',
+    'React'
+  );
 
   // add a callback handler function to App component to handle what happens when Search component renders - this function will be passed into Search component as props
   const handleSearch = (e) => {
@@ -54,7 +70,7 @@ const App = () => {
   });
 
   return (
-    <div>
+    <>
       <h1>My Hacker Stories</h1>
 
       {/* passing in the handleSearch callback handler function as props to the Search component */}
@@ -67,8 +83,7 @@ const App = () => {
 
       {/* creating another instance of list element - practicing component instantiation */}
       {/* <List /> */}
-
-    </div>
+    </>
   )
 };
 
