@@ -1,5 +1,5 @@
 // import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const App = () => {
   //console.log('App renders');
@@ -30,11 +30,23 @@ const App = () => {
     },
   ];
   // lifting state up from Search component to App component for use in all children components (currently, Search AND List)
-  const [searchTerm, setSearchTerm] = useState('React');
+  const [searchTerm, setSearchTerm] = useState(
+    // retrieving the 'search' item from local storage if it exists, and if not using the initial state of 'React'
+    localStorage.getItem('search') || 'React'
+  );
+
+  // add the useEffect hook to ensure that our 'search' item from local storage is updated in EVERY instance where the state changes in order to prevent bugs elsewhere in the app
+  //useEffect takes in two params - 1. a function to perform when changes are made to 2. the array of dependencies 
+  
+  useEffect(() => { // first arg = anon function that sets the localStorage of item 'search' to the value of searchTerm
+    localStorage.setItem('search', searchTerm);
+  }, [searchTerm] /* second arg = array of dependencies, if the state of any of these values change, the funtion prior will run EACH TIME a change in state is detected*/);
 
   // add a callback handler function to App component to handle what happens when Search component renders - this function will be passed into Search component as props
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
+    // set local storage of 'search' item to be the event's target value (or the input field value on submit)
+    localStorage.setItem('search', e.target.value);
   };
 
   const searchedStories = stories.filter(function (story) {
