@@ -143,10 +143,28 @@ const List = ({ list, onRemoveItem }) => {
 
 const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) => {
   // creating another handler function to call the function passed in as props from List which was passed down to list from App (this is a "normal handler")
-  const handleRemoveItem = () => {
+  //const handleRemoveItem = () => {
     // in the book R2R, Robin passes 'item' from List by mapping several <Item> components per each item passed into the map function; but if I passed down each item's attributes separately as in {title, url, author, num_comments, points} how can I then pass these arguments to the onRemoveItem function for it to remove the affected HTML elements from view on the page??
-    onRemoveItem(title, url, author, num_comments, points);
-  }
+    // from the book: 
+    /* const Item = ({item, onRemoveItem}) => {
+        return (
+          <li>
+            <span>
+              <a href={item.url}>{item.title}</a>
+            </span>
+            <span>{item.author}</span>
+            <span>{item.num_comments}</span>
+            <span>{item.points}</span>
+            <span>
+              <button type="button" onClick={() => onRemoveItem(item)}> OR <button type="button" onClick={onRemoveItem.bind(null, item)}> OR <button type="button" onClick={handleRemoveItem}>
+                Dismiss
+              </button>  
+            </span>
+          </li>
+        )
+    }; */
+   // onRemoveItem(title, url, author, num_comments, points);
+ // }
 
   return (
     <li>
@@ -160,9 +178,9 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
         {/* passing the handler declared above to the button as a function that should execute onClick */}
         {/* <button type="button" onClick={handleRemoveItem}> */}
         {/* another option - create in inline handler which binds arguments to the function for execution of the function with those given arguments */}
-        <button type="button" onClick={onRemoveItem.bind(null, title, url, author, num_comments, points)}>
+        {/* <button type="button" onClick={onRemoveItem.bind(null, title, url, author, num_comments, points)}> */}
         {/* option 3 - an alternative inline handler function using an anonymous function to allow us to utilize the function with an argument */}
-        {/* <button type="button" onClick={() => onRemoveItem(item)}> */}
+        <button type="button" onClick={() => onRemoveItem(item)}>
           Dismiss
         </button>
       </span>
@@ -196,6 +214,3 @@ const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocu
 };
 
 export default App;
-
-
-// Friday 7/8/22 Left off in Road to React advanced props handling (destructuring, etc.)
