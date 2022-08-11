@@ -1,5 +1,10 @@
 // import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useReducer } from 'react';
+
+const ACTIONS = {
+  SET_STORIES: "SET_STORIES",
+  REMOVE_STORY: "REMOVE_STORY",
+}
 
 const initialStories = [
   {
@@ -28,6 +33,13 @@ const initialStories = [
   },
 ];
 
+const getAsyncStories = () => 
+  // shorthand version of promise:
+  // Promise.resolve({data: {stories: initialStories}})
+  new Promise((resolve, reject) =>
+      setTimeout(() => resolve({data: {stories: initialStories}}), 2000)
+      );
+
 // initiate building custom hook to encompass functionality of useState and useEffect hooks
 // use generic parameters (instead of searchTerm/setSearchTerm) so that this hook can be resused as needed throughout the application
 const useSemiPersistentState = (key, initialState) => {
@@ -38,6 +50,21 @@ const useSemiPersistentState = (key, initialState) => {
     localStorage.setItem(key, value);
   }, [value, key]);
   return [value, setValue];
+};
+
+// reducer function for the useReducer hook
+// this function takes in the current state? and an action, based on the type of action - here the optional payload gets returned
+const storiesReducer = (state, action) => {
+  switch (action.type) {
+    case  ACTIONS.SET_STORIES:
+    return action.payload;
+    case ACTIONS.REMOVE_STORY: 
+      return state.filter(
+        (story) => action.payload.objectID !== story.objectID
+      );
+    default: 
+      throw new Error();
+  }
 };
 
 const App = () => {
@@ -57,9 +84,24 @@ const App = () => {
   );
 
   // initiate stateful stories array
-  const [stories, setStories] = useState(initialStories);
+  const [stories, dispatchStories] = useReducer(storiesReducer,[]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
+  useEffect(() => {
+    setIsLoading(true);
 
+    getAsyncStories()
+    .then(result => {
+      // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, set the state of the stories vairable (which displays list of stories on the page)
+      dispatchStories({
+        type: ACTIONS.SET_STORIES,
+        payload: result.data.stories
+      });
+      setIsLoading(false);
+    })
+    .catch(() => setIsError(true));
+  }, []);
 
   // add a callback handler function to App component to handle what happens when Search component renders - this function will be passed into Search component as props
   const handleSearch = (e) => {
@@ -68,16 +110,19 @@ const App = () => {
     localStorage.setItem('search', e.target.value);
   };
 
-  const searchedStories = stories.filter(function (story) {
-    return story.title.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  const searchedStories = stories.filter((story) => story.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   // create callback handler to remove a specific searched story
   const handleRemoveStory = (item) => {
-    const newStories = stories.filter(
-      (story) => item.objectID !== story.objectID
-    );
-    setStories(newStories);
+    // the following logic was relocated to the reducer function for use with useReducer hook for an action.type of 'remove_story'
+
+    // const newStories = stories.filter(
+    //   (story) => item.objectID !== story.objectID
+    // );
+    dispatchStories({
+      type: ACTIONS.REMOVE_STORY,
+      payload: item,
+    });
   };
 
 
@@ -107,8 +152,14 @@ const App = () => {
 
       <hr />
       
-      {/*utilize the List component within the App component*/}
-      <List list={searchedStories} onRemoveItem={handleRemoveStory}/>
+      {isError && <p>Something went wrong...</p>}
+
+      { isLoading ? <p>Loading....</p> : 
+        <List 
+          list={searchedStories} 
+          onRemoveItem={handleRemoveStory}
+        />
+      }
 
       {/* creating another instance of list element - practicing component instantiation */}
       {/* <List /> */}
