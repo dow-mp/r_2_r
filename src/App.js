@@ -2,8 +2,11 @@
 import { useState, useEffect, useRef, useReducer } from 'react';
 
 const ACTIONS = {
-  SET_STORIES: "SET_STORIES",
+  // SET_STORIES: "SET_STORIES",
   REMOVE_STORY: "REMOVE_STORY",
+  STORIES_FETCH_INIT: "STORIES_FETCH_INIT",
+  STORIES_FETCH_FAILURE: "STORIES_FETCH_FAILURE",
+  STORIES_FETCH_SUCCESS: "STORIES_FETCH_SUCCESS",
 }
 
 const initialStories = [
@@ -56,12 +59,31 @@ const useSemiPersistentState = (key, initialState) => {
 // this function takes in the current state? and an action, based on the type of action - here the optional payload gets returned
 const storiesReducer = (state, action) => {
   switch (action.type) {
-    case  ACTIONS.SET_STORIES:
-    return action.payload;
+    case  ACTIONS.STORIES_FETCH_INIT:
+      return {
+        ...state,
+        isLoading: true,
+        isError: false,
+      };
+    case ACTIONS.STORIES_FETCH_SUCCESS:
+      return {
+        ...state,
+        isLoading: false,
+        isError: false,
+      };
+    case ACTIONS.STORIES_FETCH_FAILURE:
+      return {
+        ...state,
+        isLoading: false,
+        isError: true,
+      };
     case ACTIONS.REMOVE_STORY: 
-      return state.filter(
-        (story) => action.payload.objectID !== story.objectID
-      );
+      return {
+        ...state,
+        data: state.data.filter(
+          (story) => action.payload.objectID !== story.objectID
+        ),
+      };
     default: 
       throw new Error();
   }
@@ -69,38 +91,30 @@ const storiesReducer = (state, action) => {
 
 const App = () => {
 
-  // previous use of useState and useEffect hooks prior to building custom hook
-    /* const [searchTerm, setSearchTerm] = useState(
-      localStorage.getItem('search') || 'React'
-    );
-    
-    useEffect(() => { 
-      localStorage.setItem('search', searchTerm);
-    }, [searchTerm]); */
-
   const [searchTerm, setSearchTerm] = useSemiPersistentState(
     'search',
     ''
   );
 
-  // initiate stateful stories array
-  const [stories, dispatchStories] = useReducer(storiesReducer,[]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
+  // merge stateful isLoading and isError into useReducer hook to limit the change of achieving an impossible state where data "isLoading" but the api returned an error - and therefore data could not possibly be loading
+  const [stories, dispatchStories] = useReducer(storiesReducer, {data: [], isLoading: false, isError: false});
+  // const [isLoading, setIsLoading] = useState(false);
+  // const [isError, setIsError] = useState(false);
 
   useEffect(() => {
-    setIsLoading(true);
+    // setIsLoading(true);
+    dispatchStories({ type: ACTIONS.STORIES_FETCH_INIT });
 
     getAsyncStories()
     .then(result => {
       // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, set the state of the stories vairable (which displays list of stories on the page)
       dispatchStories({
-        type: ACTIONS.SET_STORIES,
+        type: ACTIONS.STORIES_FETCH_SUCCESS,
         payload: result.data.stories
       });
-      setIsLoading(false);
+      // setIsLoading(false);
     })
-    .catch(() => setIsError(true));
+    .catch(() => dispatchStories({ type: ACTIONS.STORIES_FETCH_FAILURE }));
   }, []);
 
   // add a callback handler function to App component to handle what happens when Search component renders - this function will be passed into Search component as props
@@ -110,7 +124,7 @@ const App = () => {
     localStorage.setItem('search', e.target.value);
   };
 
-  const searchedStories = stories.filter((story) => story.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  const searchedStories = stories.data.filter((story) => story.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   // create callback handler to remove a specific searched story
   const handleRemoveStory = (item) => {
@@ -152,9 +166,9 @@ const App = () => {
 
       <hr />
       
-      {isError && <p>Something went wrong...</p>}
+      {stories.isError && <p>Something went wrong...</p>}
 
-      { isLoading ? <p>Loading....</p> : 
+      { stories.isLoading ? <p>Loading....</p> : 
         <List 
           list={searchedStories} 
           onRemoveItem={handleRemoveStory}
