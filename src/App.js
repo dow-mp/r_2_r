@@ -1,6 +1,7 @@
 // import * as React from 'react';
 import { useState, useEffect, useRef, useReducer } from 'react';
 
+// actions for the useReducer dispatch functions which will instruct what type of action to perform based on the reducer function below - storiesReducer
 const ACTIONS = {
   // SET_STORIES: "SET_STORIES",
   REMOVE_STORY: "REMOVE_STORY",
@@ -46,9 +47,11 @@ const getAsyncStories = () =>
 // initiate building custom hook to encompass functionality of useState and useEffect hooks
 // use generic parameters (instead of searchTerm/setSearchTerm) so that this hook can be resused as needed throughout the application
 const useSemiPersistentState = (key, initialState) => {
+  // initially setting the value as the list of blog posts from local storage IF it exists, otherwise loading the initial state passed in here as a param (below in the App component, I passed in key: "search", initialState: "")
   const [value, setValue] = useState(
     localStorage.getItem(key) || initialState
   );
+  // when the state of the value changes, re-setting the local storage to this new value using a side effect
   useEffect(() => {
     localStorage.setItem(key, value);
   }, [value, key]);
@@ -56,7 +59,7 @@ const useSemiPersistentState = (key, initialState) => {
 };
 
 // reducer function for the useReducer hook
-// this function takes in the current state? and an action, based on the type of action - here the optional payload gets returned
+// this function takes in the current state and an action THEN based on the type of action the following instructions are carried out
 const storiesReducer = (state, action) => {
   switch (action.type) {
     case  ACTIONS.STORIES_FETCH_INIT:
@@ -81,6 +84,7 @@ const storiesReducer = (state, action) => {
       return {
         ...state,
         data: state.data.filter(
+          // this filters in stories that do NOT match the story.objectID [each story is checked to determine if its object ID does NOT equal the passed in ID and if it passes this test, it is included ino the new shallow copy array]
           (story) => action.payload.objectID !== story.objectID
         ),
       };
@@ -91,30 +95,29 @@ const storiesReducer = (state, action) => {
 
 const App = () => {
 
+  // using the custom hook created outside of the App component to store the searchTerm to local storage when it changes as well as supply the initial state of the searchTerm input field on visit to the site
   const [searchTerm, setSearchTerm] = useSemiPersistentState(
     'search',
     ''
   );
 
-  // merge stateful isLoading and isError into useReducer hook to limit the change of achieving an impossible state where data "isLoading" but the api returned an error - and therefore data could not possibly be loading
+  // previously isLoading and isError were their own stateful variables, but here we merge them into useReducer hook to limit the chance of achieving an impossible state where data "isLoading" but the api returned an error - and therefore data could not possibly be loading
   const [stories, dispatchStories] = useReducer(storiesReducer, {data: [], isLoading: false, isError: false});
-  // const [isLoading, setIsLoading] = useState(false);
-  // const [isError, setIsError] = useState(false);
 
   useEffect(() => {
-    // setIsLoading(true);
+    // dispatch the action noted to the storiesReducer function using the dispatch function - this returns state with changes to isLoading and isError as defined in the storiesReducer function above
     dispatchStories({ type: ACTIONS.STORIES_FETCH_INIT });
 
+    // run the function to return the promise of data for the stories (as defined outside of App above)
     getAsyncStories()
     .then(result => {
-      // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, set the state of the stories vairable (which displays list of stories on the page)
+      // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, update the state of stories variable to include the payload and change isLoading and isError booleans as defined in the storiesReducer function
       dispatchStories({
         type: ACTIONS.STORIES_FETCH_SUCCESS,
         payload: result.data.stories
       });
-      // setIsLoading(false);
     })
-    .catch(() => dispatchStories({ type: ACTIONS.STORIES_FETCH_FAILURE }));
+    .catch(() => dispatchStories({ type: ACTIONS.STORIES_FETCH_FAILURE })); // dispatch the failure action type to the storiesReducer function to return state changes as defined in the function
   }, []);
 
   // add a callback handler function to App component to handle what happens when Search component renders - this function will be passed into Search component as props
@@ -133,6 +136,8 @@ const App = () => {
     // const newStories = stories.filter(
     //   (story) => item.objectID !== story.objectID
     // );
+
+    // dispatch the remove story action to the storiesReducer to run the logic above that was relocated to the reducer function in order create a new state of "data" that does not include stories where the ID matched the param ID (i.e. they are removed from the returned array value)
     dispatchStories({
       type: ACTIONS.REMOVE_STORY,
       payload: item,
