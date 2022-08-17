@@ -1,5 +1,6 @@
 // import * as React from 'react';
-import { useState, useEffect, useRef, useReducer } from 'react';
+import { useState, useEffect, useRef, useReducer, useCallback } from 'react';
+import axios from 'axios';
 
 // actions for the useReducer dispatch functions which will instruct what type of action to perform based on the reducer function below - storiesReducer
 const ACTIONS = {
@@ -10,39 +11,41 @@ const ACTIONS = {
   STORIES_FETCH_SUCCESS: "STORIES_FETCH_SUCCESS",
 }
 
-const initialStories = [
-  {
-    title: 'React',
-    url: 'https://reactjs.org',
-    author: 'Jordan Walke',
-    num_comments: 3,
-    points: 4,
-    objectID: 0,
-  },
-  {
-    title: 'Redux',
-    url: 'https://redux.js.org',
-    author: 'Dan Abramov, Andrew Clark',
-    num_comments: 2,
-    points: 5,
-    objectID: 1,
-  },
-  {
-    title: 'MongoDB',
-    url: 'https://mongo.db',
-    author: 'Someone',
-    num_comments: 5,
-    points: 3,
-    objectID: 2,
-  },
-];
+// const initialStories = [
+//   {
+//     title: 'React',
+//     url: 'https://reactjs.org',
+//     author: 'Jordan Walke',
+//     num_comments: 3,
+//     points: 4,
+//     objectID: 0,
+//   },
+//   {
+//     title: 'Redux',
+//     url: 'https://redux.js.org',
+//     author: 'Dan Abramov, Andrew Clark',
+//     num_comments: 2,
+//     points: 5,
+//     objectID: 1,
+//   },
+//   {
+//     title: 'MongoDB',
+//     url: 'https://mongo.db',
+//     author: 'Someone',
+//     num_comments: 5,
+//     points: 3,
+//     objectID: 2,
+//   },
+// ];
 
-const getAsyncStories = () => 
-  // shorthand version of promise:
-  // Promise.resolve({data: {stories: initialStories}})
-  new Promise((resolve, reject) =>
-      setTimeout(() => resolve({data: {stories: initialStories}}), 2000)
-      );
+// const getAsyncStories = () => 
+//   // shorthand version of promise:
+//   // Promise.resolve({data: {stories: initialStories}})
+//   new Promise((resolve, reject) =>
+//       setTimeout(() => resolve({data: {stories: initialStories}}), 2000)
+//       );
+
+const API_ENDPOINT = 'http://hn.algolia.com/api/v1/search?query=';
 
 // initiate building custom hook to encompass functionality of useState and useEffect hooks
 // use generic parameters (instead of searchTerm/setSearchTerm) so that this hook can be resused as needed throughout the application
@@ -71,6 +74,7 @@ const storiesReducer = (state, action) => {
     case ACTIONS.STORIES_FETCH_SUCCESS:
       return {
         ...state,
+        data: action.payload,
         isLoading: false,
         isError: false,
       };
@@ -101,33 +105,56 @@ const App = () => {
     ''
   );
 
+  const [url, setUrl] = useState(`${API_ENDPOINT}${searchTerm}`);
+
   // previously isLoading and isError were their own stateful variables, but here we merge them into useReducer hook to limit the chance of achieving an impossible state where data "isLoading" but the api returned an error - and therefore data could not possibly be loading
   const [stories, dispatchStories] = useReducer(storiesReducer, {data: [], isLoading: false, isError: false});
 
-  useEffect(() => {
+  // memoizing the callback handler function with useCallback hook - remove all fetching data logic from side effect below into its own stand alone function within the component
+  const handleFetchStories = useCallback(
+    () => {
+    console.log('handleFetchStories implicitly changed')
+    // if searchTerm does not exist, do nothing
+    if(!searchTerm) return;
     // dispatch the action noted to the storiesReducer function using the dispatch function - this returns state with changes to isLoading and isError as defined in the storiesReducer function above
     dispatchStories({ type: ACTIONS.STORIES_FETCH_INIT });
 
-    // run the function to return the promise of data for the stories (as defined outside of App above)
-    getAsyncStories()
-    .then(result => {
-      // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, update the state of stories variable to include the payload and change isLoading and isError booleans as defined in the storiesReducer function
-      dispatchStories({
-        type: ACTIONS.STORIES_FETCH_SUCCESS,
-        payload: result.data.stories
-      });
-    })
-    .catch(() => dispatchStories({ type: ACTIONS.STORIES_FETCH_FAILURE })); // dispatch the failure action type to the storiesReducer function to return state changes as defined in the function
-  }, []);
+    // use the searchTerm appended to the end of the URL query to filter results on the client side
+    axios
+      .get(url)
+      // .then((response)=> response.json())
+      .then(result => {
+        // console.log(result);
+        // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, update the state of stories variable to include the payload and change isLoading and isError booleans as defined in the storiesReducer function
+        dispatchStories({
+          type: ACTIONS.STORIES_FETCH_SUCCESS,
+          payload: /*result.data.stories*/ result.data.hits,
+        });
+      })
+      .catch(() => dispatchStories({ type: ACTIONS.STORIES_FETCH_FAILURE })); // dispatch the failure action type to the storiesReducer function to return state changes as defined in the function
+    }, [url]);
+  
+    // searchTerm in the dependecy above changes when the user enters input into the input field, this causes the function handleFetchStories to re-run and thus the side effect below runs because the function has been re-defined
+
+
+  useEffect(() => {
+    console.log('side effect handleFetchStories runs')
+    handleFetchStories();
+  }, [handleFetchStories]); // this side effect is now dependent on changes to the callback function
 
   // add a callback handler function to App component to handle what happens when Search component renders - this function will be passed into Search component as props
-  const handleSearch = (e) => {
+  const handleSearchInput = (e) => {
     setSearchTerm(e.target.value);
     // set local storage of 'search' item to be the event's target value (or the input field value on submit)
     localStorage.setItem('search', e.target.value);
   };
 
-  const searchedStories = stories.data.filter((story) => story.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  const handleSearchSubmit = () => {
+    setUrl(`${API_ENDPOINT}${searchTerm}`);
+  };
+
+  // eliminiating this variable and avoiding passing it as props allows us to switch from filtering our results on the client side to filtering the results on the server side using a query directly to the API
+  // const searchedStories = stories.data.filter((story) => story.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   // create callback handler to remove a specific searched story
   const handleRemoveStory = (item) => {
@@ -155,19 +182,18 @@ const App = () => {
         id="search"
         value={searchTerm}
         isFocused
-        onInputChange={handleSearch}
+        onInputChange={handleSearchInput}
       >
         <strong>Search: </strong>
       </InputWithLabel>
 
-      {/* testing autofocus feature with two input/label boxes */}
-      <InputWithLabel
-        id="input"
-        value={searchTerm}
-        onInputChange={handleSearch}
+      <button
+        type="button"
+        disabled={!searchTerm}
+        onClick={handleSearchSubmit}
       >
-        <strong>Input: </strong>
-      </InputWithLabel>
+        Submit
+      </button>
 
       <hr />
       
@@ -175,7 +201,7 @@ const App = () => {
 
       { stories.isLoading ? <p>Loading....</p> : 
         <List 
-          list={searchedStories} 
+          list={stories.data} 
           onRemoveItem={handleRemoveStory}
         />
       }
