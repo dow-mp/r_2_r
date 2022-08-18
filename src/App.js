@@ -148,7 +148,8 @@ const App = () => {
     // localStorage.setItem('search', e.target.value);
   };
 
-  const handleSearchSubmit = () => {
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
     setUrl(`${API_ENDPOINT}${searchTerm}`);
   };
 
@@ -175,24 +176,12 @@ const App = () => {
   return (
     <>
       <h1>My Hacker Stories</h1>
-
-      {/* passing in the handleSearch callback handler function as props to the Search component */}
-      <InputWithLabel
-        id="search"
-        value={searchTerm}
-        isFocused
-        onInputChange={handleSearchInput}
-      >
-        <strong>Search: </strong>
-      </InputWithLabel>
-
-      <button
-        type="button"
-        disabled={!searchTerm}
-        onClick={handleSearchSubmit}
-      >
-        Submit
-      </button>
+      
+      <SearchForm
+        searchTerm={searchTerm}
+        onSearchInput={handleSearchInput}
+        onSearchSubmit={handleSearchSubmit}
+      />
 
       <hr />
       
@@ -307,5 +296,27 @@ const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocu
     </>
   );
 };
+
+const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => {
+  return (
+    <form onSubmit={onSearchSubmit}>      
+    <InputWithLabel
+      id="search"
+      value={searchTerm}
+      isFocused
+      onInputChange={onSearchInput}
+    >
+      <strong>Search: </strong>
+    </InputWithLabel>
+
+    <button
+      type="submit"
+      disabled={!searchTerm}
+    >
+      Submit
+    </button>
+  </form>
+  )
+}
 
 export default App;
