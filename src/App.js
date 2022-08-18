@@ -111,28 +111,27 @@ const App = () => {
   const [stories, dispatchStories] = useReducer(storiesReducer, {data: [], isLoading: false, isError: false});
 
   // memoizing the callback handler function with useCallback hook - remove all fetching data logic from side effect below into its own stand alone function within the component
-  const handleFetchStories = useCallback(
-    () => {
+  const handleFetchStories = useCallback( async () => {
     console.log('handleFetchStories implicitly changed')
     // if searchTerm does not exist, do nothing
-    if(!searchTerm) return;
+    // if(!searchTerm) return;
     // dispatch the action noted to the storiesReducer function using the dispatch function - this returns state with changes to isLoading and isError as defined in the storiesReducer function above
     dispatchStories({ type: ACTIONS.STORIES_FETCH_INIT });
 
     // use the searchTerm appended to the end of the URL query to filter results on the client side
-    axios
-      .get(url)
-      // .then((response)=> response.json())
-      .then(result => {
-        // console.log(result);
+    try {
+      const result = await axios.get(url)
+      console.log(result);
         // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, update the state of stories variable to include the payload and change isLoading and isError booleans as defined in the storiesReducer function
-        dispatchStories({
-          type: ACTIONS.STORIES_FETCH_SUCCESS,
-          payload: /*result.data.stories*/ result.data.hits,
-        });
-      })
-      .catch(() => dispatchStories({ type: ACTIONS.STORIES_FETCH_FAILURE })); // dispatch the failure action type to the storiesReducer function to return state changes as defined in the function
-    }, [url]);
+      dispatchStories({
+        type: ACTIONS.STORIES_FETCH_SUCCESS,
+        payload: result.data.hits,
+      });
+    } catch {
+      console.log(Error);
+      dispatchStories({ type: ACTIONS.STORIES_FETCH_FAILURE }); // dispatch the failure action type to the storiesReducer function to return state changes as defined in the function
+    }
+  }, [url]);
   
     // searchTerm in the dependecy above changes when the user enters input into the input field, this causes the function handleFetchStories to re-run and thus the side effect below runs because the function has been re-defined
 
@@ -146,7 +145,7 @@ const App = () => {
   const handleSearchInput = (e) => {
     setSearchTerm(e.target.value);
     // set local storage of 'search' item to be the event's target value (or the input field value on submit)
-    localStorage.setItem('search', e.target.value);
+    // localStorage.setItem('search', e.target.value);
   };
 
   const handleSearchSubmit = () => {
