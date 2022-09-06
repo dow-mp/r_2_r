@@ -1,5 +1,5 @@
 // import * as React from 'react';
-import { useState, useEffect, useRef, useReducer, useCallback } from 'react';
+import { useState, useEffect, useRef, useReducer, useCallback, Component } from 'react';
 import axios from 'axios';
 
 // actions for the useReducer dispatch functions which will instruct what type of action to perform based on the reducer function below - storiesReducer
@@ -272,30 +272,53 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
   )
 }
 
-const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocused}) => {
-  const inputRef = useRef();
+class InputWithLabel extends Component {
+  render() {
+    const {
+      id,
+      value,
+      type="text",
+      onInputChange, 
+      children
+    } = this.props;
+     return (
+      <>
+        <label htmlFor={id}>{children}</label>
+        &nbsp;
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={onInputChange}
+        />
+      </>
+     );
+  }
+}
+// const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocused}) => {
+//   const inputRef = useRef();
 
-  useEffect(() => {
-    if(isFocused && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isFocused]);
+//   useEffect(() => {
+//     if(isFocused && inputRef.current) {
+//       inputRef.current.focus();
+//     }
+//   }, [isFocused]);
 
-  return (
-    <>
-      <label htmlFor={id}>{children}</label>
-      &nbsp;
-      <input 
-        ref={inputRef}
-        id={id} 
-        type={type}
-        value={value}
-        autoFocus={isFocused}
-        onChange={onInputChange}
-      />
-    </>
-  );
-};
+//   return (
+//     <>
+//       <label htmlFor={id}>{children}</label>
+//       &nbsp;
+//       <input 
+//         ref={inputRef}
+//         id={id} 
+//         type={type}
+//         value={value}
+//         autoFocus={isFocused}
+//         onChange={onInputChange}
+//       />
+//     </>
+//   );
+// };
 
 const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => {
   return (
