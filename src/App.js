@@ -1,5 +1,5 @@
 // import * as React from 'react';
-import { useState, useEffect, useRef, useReducer, useCallback, Component } from 'react';
+import { useState, useEffect, useRef, useReducer, useCallback, Component, createRef } from 'react';
 import axios from 'axios';
 
 // actions for the useReducer dispatch functions which will instruct what type of action to perform based on the reducer function below - storiesReducer
@@ -273,6 +273,18 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
 }
 
 class InputWithLabel extends Component {
+  constructor(props) {
+    super(props);
+
+    this.inputRef = createRef();
+  }
+
+  componentDidMount() {
+    if(this.props.isFocused) {
+      this.inputRef?.current.focus();
+    }
+  }
+
   render() {
     const {
       id,
@@ -286,6 +298,7 @@ class InputWithLabel extends Component {
         <label htmlFor={id}>{children}</label>
         &nbsp;
         <input
+          ref={this.inputRef}
           id={id}
           type={type}
           value={value}
