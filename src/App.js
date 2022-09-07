@@ -1,6 +1,7 @@
 // import * as React from 'react';
 import { useState, useEffect, useRef, useReducer, useCallback, Component, createRef } from 'react';
 import axios from 'axios';
+import './App.css';
 
 // actions for the useReducer dispatch functions which will instruct what type of action to perform based on the reducer function below - storiesReducer
 const ACTIONS = {
@@ -171,11 +172,9 @@ const App = () => {
     });
   };
 
-
-
   return (
-    <>
-      <h1>My Hacker Stories</h1>
+    <div className="container">
+      <h1 className="headline-primary">My Hacker Stories</h1>
       
       <SearchForm
         searchTerm={searchTerm}
@@ -196,7 +195,7 @@ const App = () => {
 
       {/* creating another instance of list element - practicing component instantiation */}
       {/* <List /> */}
-    </>
+    </div>
   )
 };
 
@@ -251,20 +250,24 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
  // }
 
   return (
-    <li>
-      <span>
+    <li className="item">
+      <span style={{ width: '40%' }}>
         <a href={url}>{title}</a>
       </span>
-      <span>{author}</span>
-      <span>{num_comments}</span>
-      <span>{points}</span>
-      <span>
+      <span style={{ width: '30%' }}>{author}</span>
+      <span style={{ width: '10%' }}>{num_comments}</span>
+      <span style={{ width: '10%' }}>{points}</span>
+      <span style={{ width: '10%' }}>
         {/* passing the handler declared above to the button as a function that should execute onClick */}
         {/* <button type="button" onClick={handleRemoveItem}> */}
         {/* another option - create in inline handler which binds arguments to the function for execution of the function with those given arguments */}
         {/* <button type="button" onClick={onRemoveItem.bind(null, title, url, author, num_comments, points)}> */}
         {/* option 3 - an alternative inline handler function using an anonymous function to allow us to utilize the function with an argument */}
-        <button type="button" onClick={() => onRemoveItem(item)}>
+        <button
+          type="button"
+          onClick={() => onRemoveItem(item)}
+          className="button button_small"
+        >
           Dismiss
         </button>
       </span>
@@ -272,70 +275,72 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
   )
 }
 
-class InputWithLabel extends Component {
-  constructor(props) {
-    super(props);
+// class InputWithLabel extends Component {
+//   constructor(props) {
+//     super(props);
 
-    this.inputRef = createRef();
-  }
+//     this.inputRef = createRef();
+//   }
 
-  componentDidMount() {
-    if(this.props.isFocused) {
-      this.inputRef?.current.focus();
-    }
-  }
-
-  render() {
-    const {
-      id,
-      value,
-      type="text",
-      onInputChange, 
-      children
-    } = this.props;
-     return (
-      <>
-        <label htmlFor={id}>{children}</label>
-        &nbsp;
-        <input
-          ref={this.inputRef}
-          id={id}
-          type={type}
-          value={value}
-          onChange={onInputChange}
-        />
-      </>
-     );
-  }
-}
-// const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocused}) => {
-//   const inputRef = useRef();
-
-//   useEffect(() => {
-//     if(isFocused && inputRef.current) {
-//       inputRef.current.focus();
+//   componentDidMount() {
+//     if(this.props.isFocused) {
+//       this.inputRef?.current.focus();
 //     }
-//   }, [isFocused]);
+//   }
 
-//   return (
-//     <>
-//       <label htmlFor={id}>{children}</label>
-//       &nbsp;
-//       <input 
-//         ref={inputRef}
-//         id={id} 
-//         type={type}
-//         value={value}
-//         autoFocus={isFocused}
-//         onChange={onInputChange}
-//       />
-//     </>
-//   );
-// };
+//   render() {
+//     const {
+//       id,
+//       value,
+//       type="text",
+//       onInputChange, 
+//       children
+//     } = this.props;
+//      return (
+//       <>
+//         <label htmlFor={id}>{children}</label>
+//         &nbsp;
+//         <input
+//           ref={this.inputRef}
+//           id={id}
+//           type={type}
+//           value={value}
+//           onChange={onInputChange}
+//         />
+//       </>
+//      );
+//   }
+// }
+
+const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocused}) => {
+  const inputRef = useRef();
+
+  useEffect(() => {
+    if(isFocused && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isFocused]);
+
+  return (
+    <>
+      <label htmlFor={id} className="label">{children}</label>
+      &nbsp;
+      <input 
+        ref={inputRef}
+        id={id} 
+        type={type}
+        value={value}
+        autoFocus={isFocused}
+        onChange={onInputChange}
+        className="input"
+      />
+    </>
+  );
+};
 
 const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => {
   return (
-    <form onSubmit={onSearchSubmit}>      
+    <form onSubmit={onSearchSubmit} className="search-form">      
     <InputWithLabel
       id="search"
       value={searchTerm}
@@ -348,6 +353,7 @@ const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => {
     <button
       type="submit"
       disabled={!searchTerm}
+      className="button button-large"
     >
       Submit
     </button>
