@@ -1,7 +1,91 @@
 // import * as React from 'react';
 import { useState, useEffect, useRef, useReducer, useCallback, Component, createRef } from 'react';
 import axios from 'axios';
-import './App.css';
+import styles from './App.module.css';
+import styled from 'styled-components';
+
+// defining styled-components
+const StyledContainer = styled.div`
+  height: fit-content;
+  width: 100vw;
+  padding: 20px;
+  background: #83a4d4;
+  background: linear-gradient(to left, #b6fbff, #83a4d4);
+  color: #171212;
+`;
+
+const StyledHeadlinePrimary = styled.h1`
+  font-size: 48px;
+  font-weight: 300;
+  letter-spacing: 2px;
+`;
+
+const StyledItem = styled.li`
+  display: flex;
+  align-items: center;
+  padding-bottom: 5px;
+`;
+
+const StyledColumn = styled.span`
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  a {
+    color: inherit;
+  }
+  width: ${(props) => props.width};
+`;
+
+const StyledButton = styled.button`
+  background: transparent;
+  border: 1px solid #171212;
+  padding: 5px;
+  cursor: pointer;
+  transition: all 0.1s ease-in;
+  &:hover {
+    background: #171212;
+    color: #ffffff;
+  }
+`;
+
+const StyledButtonSmall = styled(StyledButton)`
+  padding: 5px;
+`;
+
+const StyledButtonLarge = styled(StyledButton)`
+  padding: 10px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+`;
+
+const StyledSearchForm = styled.form`
+  padding: 10px 0 20px 0;
+  display: flex;
+  align-items: center;  
+`;
+
+const StyledLabel = styled.label`
+  border: 1px solid #171212;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin-right: 5px;
+  font-size: 24px;
+  border-radius: 5px;
+  height: 30px;
+`;
+
+const StyledInput = styled.input`
+  border: none;
+  border-bottom: 1px solid #171212;
+  background-color: transparent;
+  margin-right: 5px;
+  height: 30px;
+  font-size: 24px;
+`;
+
 
 // actions for the useReducer dispatch functions which will instruct what type of action to perform based on the reducer function below - storiesReducer
 const ACTIONS = {
@@ -173,9 +257,15 @@ const App = () => {
   };
 
   return (
-    <div className="container">
-      <h1 className="headline-primary">My Hacker Stories</h1>
-      
+    // <div className="container">
+    // implement css module (imports the css stylesheet as a module or Object which you can access different properties of the object using dot notaiton)
+    // <div className={styles.container}>
+    // implement styled-components (css directly inside of js)
+    <StyledContainer>
+      {/* <h1 className="headline-primary">My Hacker Stories</h1> */}
+      {/* implement css module */}
+      {/* <h1 className={styles.headlinePrimary}>My Hacker Stories</h1> */}
+      <StyledHeadlinePrimary>My Hacker Stories</StyledHeadlinePrimary>
       <SearchForm
         searchTerm={searchTerm}
         onSearchInput={handleSearchInput}
@@ -195,7 +285,8 @@ const App = () => {
 
       {/* creating another instance of list element - practicing component instantiation */}
       {/* <List /> */}
-    </div>
+    {/* </div> */}
+    </StyledContainer>
   )
 };
 
@@ -250,28 +341,48 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
  // }
 
   return (
-    <li className="item">
-      <span style={{ width: '40%' }}>
+    // <li className="item">
+    // implement css module
+    // <li className={styles.item}>
+    // implement styled list item
+    <StyledItem>
+      {/* <span style={{ width: '40%' }}> */}
+      <StyledColumn>
         <a href={url}>{title}</a>
-      </span>
-      <span style={{ width: '30%' }}>{author}</span>
-      <span style={{ width: '10%' }}>{num_comments}</span>
-      <span style={{ width: '10%' }}>{points}</span>
-      <span style={{ width: '10%' }}>
+      {/* </span> */}
+      </StyledColumn>
+      {/* <span style={{ width: '30%' }}>{author}</span> */}
+      <StyledColumn>{author}</StyledColumn>
+      {/* <span style={{ width: '10%' }}>{num_comments}</span> */}
+      <StyledColumn>{num_comments}</StyledColumn>
+      {/* <span style={{ width: '10%' }}>{points}</span> */}
+      <StyledColumn>{points}</StyledColumn>
+      {/* <span style={{ width: '10%' }}> */}
+      <StyledColumn>
         {/* passing the handler declared above to the button as a function that should execute onClick */}
         {/* <button type="button" onClick={handleRemoveItem}> */}
         {/* another option - create in inline handler which binds arguments to the function for execution of the function with those given arguments */}
         {/* <button type="button" onClick={onRemoveItem.bind(null, title, url, author, num_comments, points)}> */}
         {/* option 3 - an alternative inline handler function using an anonymous function to allow us to utilize the function with an argument */}
-        <button
+        {/* <button */}
+        <StyledButtonSmall
           type="button"
           onClick={() => onRemoveItem(item)}
-          className="button button_small"
+          // className="button button_small"
+          // implement css module - requires string interpolation via template literal for multiple class names via dot notation
+          // an alternative is the install and import the classnames library and use the following syntax: 
+          // className={cs(styles.button, styles.buttonSmall)}
+          // classnames library also allows for conditional styling - the left hand side of the object's property must be used as a computed property name and is only applied if the right-hand side evaluates true as follows:
+          // className={cs(styles.button, { [styles.buttonLarge]: isLarge})}
+          // className={`${styles.button} ${styles.buttonSmall}`}
         >
           Dismiss
-        </button>
-      </span>
-    </li>
+        {/* </button> */}
+        </StyledButtonSmall>
+      {/* </span> */}
+      </StyledColumn>
+    {/* </li> */}
+    </StyledItem>
   )
 }
 
@@ -323,16 +434,22 @@ const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocu
 
   return (
     <>
-      <label htmlFor={id} className="label">{children}</label>
+      {/* <label htmlFor={id} className="label">{children}</label> */}
+      {/* <label htmlFor={id} className={styles.label}>{children}</label> */}
+      {/* implement styled label component */}
+      <StyledLabel htmlFor={id}>{children}</StyledLabel>
       &nbsp;
-      <input 
+      {/* <input  */}
+      {/* implement styled input component */}
+      <StyledInput
         ref={inputRef}
         id={id} 
         type={type}
         value={value}
         autoFocus={isFocused}
         onChange={onInputChange}
-        className="input"
+        // className="input"
+        // className={styles.input}
       />
     </>
   );
@@ -340,24 +457,32 @@ const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocu
 
 const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => {
   return (
-    <form onSubmit={onSearchSubmit} className="search-form">      
-    <InputWithLabel
-      id="search"
-      value={searchTerm}
-      isFocused
-      onInputChange={onSearchInput}
-    >
-      <strong>Search: </strong>
-    </InputWithLabel>
+    // <form onSubmit={onSearchSubmit} className="search-form">      
+    // <form onSubmit={onSearchSubmit} className={styles.searchForm}> 
+    // implement styled search form component
+    <StyledSearchForm onSubmit={onSearchSubmit}>
+      <InputWithLabel
+        id="search"
+        value={searchTerm}
+        isFocused
+        onInputChange={onSearchInput}
+      >
+        <strong>Search: </strong>
+      </InputWithLabel>
 
-    <button
-      type="submit"
-      disabled={!searchTerm}
-      className="button button-large"
-    >
-      Submit
-    </button>
-  </form>
+      {/* <button */}
+      {/* implement large styled button */}
+      <StyledButtonLarge
+        type="submit"
+        disabled={!searchTerm}
+        // className="button button-large"
+        // className={`${styles.button} ${styles.buttonLarge}`}
+      >
+        Submit
+      {/* </button> */}
+      </StyledButtonLarge>
+    {/* </form> */}
+    </StyledSearchForm>
   )
 }
 
