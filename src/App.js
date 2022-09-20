@@ -1,8 +1,10 @@
 // import * as React from 'react';
-import { useState, useEffect, useRef, useReducer, useCallback, Component, createRef } from 'react';
+import { useState, useEffect, useRef, useReducer, useCallback, Component, createRef, memo } from 'react';
 import axios from 'axios';
 import styles from './App.module.css';
 import styled from 'styled-components';
+// importing check mark svg for use as button "text" to dismiss articles
+import { ReactComponent as Check } from './check.svg';
 
 // defining styled-components
 const StyledContainer = styled.div`
@@ -52,6 +54,10 @@ const StyledButton = styled.button`
 
 const StyledButtonSmall = styled(StyledButton)`
   padding: 5px;
+  // adding styling for when the button is hovered over
+  &:hover {
+    background-color: hotpink;
+  }
 `;
 
 const StyledButtonLarge = styled(StyledButton)`
@@ -135,13 +141,22 @@ const API_ENDPOINT = 'http://hn.algolia.com/api/v1/search?query=';
 // initiate building custom hook to encompass functionality of useState and useEffect hooks
 // use generic parameters (instead of searchTerm/setSearchTerm) so that this hook can be resused as needed throughout the application
 const useSemiPersistentState = (key, initialState) => {
-  // initially setting the value as the list of blog posts from local storage IF it exists, otherwise loading the initial state passed in here as a param (below in the App component, I passed in key: "search", initialState: "")
+  // initialize isMounted ref to allow side-effect below to run only on subsequent renders/re-renders and NOT on initial render
+  const isMounted = useRef(false);
+
   const [value, setValue] = useState(
     localStorage.getItem(key) || initialState
   );
   // when the state of the value changes, re-setting the local storage to this new value using a side effect
   useEffect(() => {
-    localStorage.setItem(key, value);
+    // 
+    if(!isMounted.current) {
+      // initially set ref to false, so this conditions evals true on the first render and toggles the current ref to true (from false), the second part of this side effect will not run on the first render
+      isMounted.current = true;
+    } else {
+      // component re-renders and current ref is now true (as set in the first render) so the below code block/side effect WILL run on re-renders only
+      localStorage.setItem(key, value);
+    }
   }, [value, key]);
   return [value, setValue];
 };
@@ -242,7 +257,8 @@ const App = () => {
   // const searchedStories = stories.data.filter((story) => story.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   // create callback handler to remove a specific searched story
-  const handleRemoveStory = (item) => {
+  // implement useCallback to allow memo functionality in the list component below (to create an equality check for the list component to avoid unncecessary re-renders - we need useCallback here to avoid creating a new version of this handler on each render of the app component which would then result in a new version of the list component since this is passed in as a prop)
+  const handleRemoveStory = useCallback((item) => {
     // the following logic was relocated to the reducer function for use with useReducer hook for an action.type of 'remove_story'
 
     // const newStories = stories.filter(
@@ -254,8 +270,9 @@ const App = () => {
       type: ACTIONS.REMOVE_STORY,
       payload: item,
     });
-  };
+  }, []);
 
+  console.log('B: App');
   return (
     // <div className="container">
     // implement css module (imports the css stylesheet as a module or Object which you can access different properties of the object using dot notaiton)
@@ -291,7 +308,7 @@ const App = () => {
 };
 
 // pass in the props to the List component - we always pass in "props" because there may be several attributes or props passed into the component from the parent and we can access them by stating props._____ (the name of the attribute)
-const List = ({ list, onRemoveItem }) => {
+const eList = ({list, onRemoveItem}) => {
   return (
     <ul>
       {/* can create another component called Item to further simplify the list component and keep each function separate */}
@@ -314,6 +331,30 @@ const List = ({ list, onRemoveItem }) => {
     </ul>
   )
 };
+
+const List = memo(
+  (props) => 
+  // console.log('B: List') will always evaluate false, so the right-hand side of this operator will be executed (and the console will log what we want it to)
+  console.log('B: List') || (
+    <ul>
+      {props.list.map((item) => ( 
+          <Item 
+            key={item.objectId}
+            title={item.title}
+            url={item.url}
+            author={item.author}
+            num_comments={item.num_comments}
+            points={item.points}
+            item={item}
+            onRemoveItem={props.onRemoveItem}
+          />
+        )
+      )}
+    </ul>
+  )
+);
+
+
 
 const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) => {
   // creating another handler function to call the function passed in as props from List which was passed down to list from App (this is a "normal handler")
@@ -376,7 +417,7 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
           // className={cs(styles.button, { [styles.buttonLarge]: isLarge})}
           // className={`${styles.button} ${styles.buttonSmall}`}
         >
-          Dismiss
+          <Check height="18px" width="18px" />
         {/* </button> */}
         </StyledButtonSmall>
       {/* </span> */}

@@ -44,7 +44,8 @@
 }
 
 .button:hover {
-  background: #171212;
+  /* background: #171212; */
+  background: hotpink;
   color: #ffffff;
 }
 
@@ -58,6 +59,11 @@
   display: flex;
   align-items: center;
   /* box-shadow: 5px 2px 2px #241e1e; */
+}
+
+.button:hover > svg {
+  fill: hotpink;
+  stroke: hotpink;
 }
 
 .search-form {
