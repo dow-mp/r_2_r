@@ -141,23 +141,13 @@ const API_ENDPOINT = 'http://hn.algolia.com/api/v1/search?query=';
 // initiate building custom hook to encompass functionality of useState and useEffect hooks
 // use generic parameters (instead of searchTerm/setSearchTerm) so that this hook can be resused as needed throughout the application
 const useSemiPersistentState = (key, initialState) => {
-  // initialize isMounted ref to allow side-effect below to run only on subsequent renders/re-renders and NOT on initial render
-  const isMounted = useRef(false);
-
   const [value, setValue] = useState(
     localStorage.getItem(key) || initialState
   );
   // when the state of the value changes, re-setting the local storage to this new value using a side effect
   useEffect(() => {
-    // 
-    if(!isMounted.current) {
-      // initially set ref to false, so this conditions evals true on the first render and toggles the current ref to true (from false), the second part of this side effect will not run on the first render
-      isMounted.current = true;
-    } else {
-      // component re-renders and current ref is now true (as set in the first render) so the below code block/side effect WILL run on re-renders only
       localStorage.setItem(key, value);
-    }
-  }, [value, key]);
+    }, [value, key]);
   return [value, setValue];
 };
 
@@ -332,8 +322,7 @@ const eList = ({list, onRemoveItem}) => {
   )
 };
 
-const List = memo(
-  (props) => 
+const List = (props) => 
   // console.log('B: List') will always evaluate false, so the right-hand side of this operator will be executed (and the console will log what we want it to)
   console.log('B: List') || (
     <ul>
@@ -351,8 +340,7 @@ const List = memo(
         )
       )}
     </ul>
-  )
-);
+  );
 
 
 
