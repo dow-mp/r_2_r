@@ -1,5 +1,5 @@
 // import * as React from 'react';
-import { useState, useEffect, useRef, useReducer, useCallback, Component, createRef, memo } from 'react';
+import { useState, useEffect, useRef, useReducer, useCallback, Component, createRef, memo, useMemo } from 'react';
 import axios from 'axios';
 import styles from './App.module.css';
 import styled from 'styled-components';
@@ -197,8 +197,15 @@ const storiesReducer = (state, action) => {
   }
 };
 
-const App = () => {
+const getSumComments = (stories) => {
+  console.log('C');
+  return stories.data.reduce(
+    (result, value) => result + value.num_comments,
+    0
+  );
+};
 
+const App = () => {
   // using the custom hook created outside of the App component to store the searchTerm to local storage when it changes as well as supply the initial state of the searchTerm input field on visit to the site
   const [searchTerm, setSearchTerm] = useSemiPersistentState(
     'search',
@@ -210,9 +217,13 @@ const App = () => {
   // previously isLoading and isError were their own stateful variables, but here we merge them into useReducer hook to limit the chance of achieving an impossible state where data "isLoading" but the api returned an error - and therefore data could not possibly be loading
   const [stories, dispatchStories] = useReducer(storiesReducer, {data: [], isLoading: false, isError: false});
 
+  const sumComments = useMemo(() => getSumComments(stories), 
+    [stories]
+  );
+
   // memoizing the callback handler function with useCallback hook - remove all fetching data logic from side effect below into its own stand alone function within the component
   const handleFetchStories = useCallback( async () => {
-    console.log('handleFetchStories implicitly changed')
+    // console.log('handleFetchStories implicitly changed')
     // if searchTerm does not exist, do nothing
     // if(!searchTerm) return;
     // dispatch the action noted to the storiesReducer function using the dispatch function - this returns state with changes to isLoading and isError as defined in the storiesReducer function above
@@ -221,7 +232,7 @@ const App = () => {
     // use the searchTerm appended to the end of the URL query to filter results on the client side
     try {
       const result = await axios.get(url)
-      console.log(result);
+      // console.log(result);
         // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, update the state of stories variable to include the payload and change isLoading and isError booleans as defined in the storiesReducer function
       dispatchStories({
         type: ACTIONS.STORIES_FETCH_SUCCESS,
@@ -237,7 +248,7 @@ const App = () => {
 
 
   useEffect(() => {
-    console.log('side effect handleFetchStories runs')
+    // console.log('side effect handleFetchStories runs')
     handleFetchStories();
   }, [handleFetchStories]); // this side effect is now dependent on changes to the callback function
 
@@ -282,7 +293,7 @@ const App = () => {
       {/* <h1 className="headline-primary">My Hacker Stories</h1> */}
       {/* implement css module */}
       {/* <h1 className={styles.headlinePrimary}>My Hacker Stories</h1> */}
-      <StyledHeadlinePrimary>My Hacker Stories</StyledHeadlinePrimary>
+      <StyledHeadlinePrimary>My Hacker Stories with {sumComments} comments.</StyledHeadlinePrimary>
       <SearchForm
         searchTerm={searchTerm}
         onSearchInput={handleSearchInput}
@@ -353,8 +364,6 @@ const List = memo(
     </ul>
   )
 );
-
-
 
 const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) => {
   // creating another handler function to call the function passed in as props from List which was passed down to list from App (this is a "normal handler")
