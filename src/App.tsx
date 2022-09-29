@@ -1,10 +1,10 @@
 // import * as React from 'react';
-import { useState, useEffect, useRef, useReducer, useCallback, Component, createRef, memo } from 'react';
+import { useState, useEffect, useRef, useReducer, useCallback } from 'react';
 import axios from 'axios';
-import styles from './App.module.css';
+// import styles from './App.module.css';
 import styled from 'styled-components';
 // importing check mark svg for use as button "text" to dismiss articles
-import { ReactComponent as Check } from './check.svg';
+import Check from './check.svg';
 
 // defining styled-components
 const StyledContainer = styled.div`
@@ -37,7 +37,7 @@ const StyledColumn = styled.span`
   a {
     color: inherit;
   }
-  width: ${(props) => props.width};
+
 `;
 
 const StyledButton = styled.button`
@@ -92,7 +92,6 @@ const StyledInput = styled.input`
   font-size: 24px;
 `;
 
-
 // actions for the useReducer dispatch functions which will instruct what type of action to perform based on the reducer function below - storiesReducer
 const ACTIONS = {
   // SET_STORIES: "SET_STORIES",
@@ -102,46 +101,20 @@ const ACTIONS = {
   STORIES_FETCH_SUCCESS: "STORIES_FETCH_SUCCESS",
 }
 
-// const initialStories = [
-//   {
-//     title: 'React',
-//     url: 'https://reactjs.org',
-//     author: 'Jordan Walke',
-//     num_comments: 3,
-//     points: 4,
-//     objectID: 0,
-//   },
-//   {
-//     title: 'Redux',
-//     url: 'https://redux.js.org',
-//     author: 'Dan Abramov, Andrew Clark',
-//     num_comments: 2,
-//     points: 5,
-//     objectID: 1,
-//   },
-//   {
-//     title: 'MongoDB',
-//     url: 'https://mongo.db',
-//     author: 'Someone',
-//     num_comments: 5,
-//     points: 3,
-//     objectID: 2,
-//   },
-// ];
-
-// const getAsyncStories = () => 
-//   // shorthand version of promise:
-//   // Promise.resolve({data: {stories: initialStories}})
-//   new Promise((resolve, reject) =>
-//       setTimeout(() => resolve({data: {stories: initialStories}}), 2000)
-//       );
-
 const API_ENDPOINT = 'http://hn.algolia.com/api/v1/search?query=';
 
 // initiate building custom hook to encompass functionality of useState and useEffect hooks
 // use generic parameters (instead of searchTerm/setSearchTerm) so that this hook can be resused as needed throughout the application
-const useSemiPersistentState = (key, initialState) => {
+const useSemiPersistentState = (
+  // add type safety for the arguments key and initialState using TypeScript
+  key: string,
+  initialState: string
+  // below corresponds to the return value at the bottom of this hook; telling typescript that this function returns an [array] containing a string (the state value) and that the setState function returns nothing (void)
+): [string, (newValue: string) => void] => {
+  // we do not need to add additional type safety features below because of React and Typescript working together with type inference (i.e. if the initial state is a string, then the returned current state will be returned as a string and the updater function will only accept a string and return nothing)
   const [value, setValue] = useState(
+    // value is inferred to be a string
+    // setValue only takes a string as an argument 2' type inference
     localStorage.getItem(key) || initialState
   );
   // when the state of the value changes, re-setting the local storage to this new value using a side effect
@@ -151,9 +124,45 @@ const useSemiPersistentState = (key, initialState) => {
   return [value, setValue];
 };
 
+// adding types for states, actions below
+type StoriesState = {
+  data: Stories;
+  isLoading: boolean;
+  isError: boolean;
+};
+
+interface StoriesFetchInitAction {
+  type: 'STORIES_FETCH_INIT';
+  payload: Stories;
+}
+
+interface StoriesFetchSuccessAction {
+  type: 'STORIES_FETCH_SUCCESS';
+  payload: Stories;
+}
+
+interface StoriesFetchFailureAction {
+  type: 'STORIES_FETCH_FAILURE';
+  payload: Stories;
+}
+
+interface StoriesRemoveAction {
+  type: 'REMOVE_STORY';
+  payload: Story;
+}
+
+type StoriesAction = 
+  | StoriesFetchInitAction
+  | StoriesFetchSuccessAction
+  | StoriesFetchFailureAction
+  | StoriesRemoveAction;
+
 // reducer function for the useReducer hook
 // this function takes in the current state and an action THEN based on the type of action the following instructions are carried out
-const storiesReducer = (state, action) => {
+const storiesReducer = (
+  state: StoriesState,
+  action: StoriesAction
+  ) => {
   switch (action.type) {
     case  ACTIONS.STORIES_FETCH_INIT:
       return {
@@ -178,8 +187,8 @@ const storiesReducer = (state, action) => {
       return {
         ...state,
         data: state.data.filter(
-          // this filters in stories that do NOT match the story.objectID [each story is checked to determine if its object ID does NOT equal the passed in ID and if it passes this test, it is included ino the new shallow copy array]
-          (story) => action.payload.objectID !== story.objectID
+          // this filters in stories that do NOT match the story.objectId [each story is checked to determine if its object ID does NOT equal the passed in ID and if it passes this test, it is included ino the new shallow copy array]
+          (story) => action.payload.objectId !== story.objectId
         ),
       };
     default: 
@@ -198,11 +207,16 @@ const App = () => {
   const [url, setUrl] = useState(`${API_ENDPOINT}${searchTerm}`);
 
   // previously isLoading and isError were their own stateful variables, but here we merge them into useReducer hook to limit the chance of achieving an impossible state where data "isLoading" but the api returned an error - and therefore data could not possibly be loading
-  const [stories, dispatchStories] = useReducer(storiesReducer, {data: [], isLoading: false, isError: false});
+  const [stories, dispatchStories] = useReducer(
+    storiesReducer, 
+    { data: [],
+      isLoading: false,
+      isError: false
+    });
 
   // memoizing the callback handler function with useCallback hook - remove all fetching data logic from side effect below into its own stand alone function within the component
   const handleFetchStories = useCallback( async () => {
-    console.log('handleFetchStories implicitly changed')
+    // console.log('handleFetchStories implicitly changed')
     // if searchTerm does not exist, do nothing
     // if(!searchTerm) return;
     // dispatch the action noted to the storiesReducer function using the dispatch function - this returns state with changes to isLoading and isError as defined in the storiesReducer function above
@@ -211,7 +225,7 @@ const App = () => {
     // use the searchTerm appended to the end of the URL query to filter results on the client side
     try {
       const result = await axios.get(url)
-      console.log(result);
+      // console.log(result);
         // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, update the state of stories variable to include the payload and change isLoading and isError booleans as defined in the storiesReducer function
       dispatchStories({
         type: ACTIONS.STORIES_FETCH_SUCCESS,
@@ -227,18 +241,18 @@ const App = () => {
 
 
   useEffect(() => {
-    console.log('side effect handleFetchStories runs')
+    // console.log('side effect handleFetchStories runs')
     handleFetchStories();
   }, [handleFetchStories]); // this side effect is now dependent on changes to the callback function
 
   // add a callback handler function to App component to handle what happens when Search component renders - this function will be passed into Search component as props
-  const handleSearchInput = (e) => {
+  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     // set local storage of 'search' item to be the event's target value (or the input field value on submit)
     // localStorage.setItem('search', e.target.value);
   };
 
-  const handleSearchSubmit = (e) => {
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setUrl(`${API_ENDPOINT}${searchTerm}`);
   };
@@ -248,11 +262,11 @@ const App = () => {
 
   // create callback handler to remove a specific searched story
   // implement useCallback to allow memo functionality in the list component below (to create an equality check for the list component to avoid unncecessary re-renders - we need useCallback here to avoid creating a new version of this handler on each render of the app component which would then result in a new version of the list component since this is passed in as a prop)
-  const handleRemoveStory = useCallback((item) => {
+  const handleRemoveStory = useCallback((item: Story) => {
     // the following logic was relocated to the reducer function for use with useReducer hook for an action.type of 'remove_story'
 
     // const newStories = stories.filter(
-    //   (story) => item.objectID !== story.objectID
+    //   (story) => item.objectId !== story.objectId
     // );
 
     // dispatch the remove story action to the storiesReducer to run the logic above that was relocated to the reducer function in order create a new state of "data" that does not include stories where the ID matched the param ID (i.e. they are removed from the returned array value)
@@ -262,7 +276,6 @@ const App = () => {
     });
   }, []);
 
-  console.log('B: App');
   return (
     // <div className="container">
     // implement css module (imports the css stylesheet as a module or Object which you can access different properties of the object using dot notaiton)
@@ -298,15 +311,40 @@ const App = () => {
 };
 
 // pass in the props to the List component - we always pass in "props" because there may be several attributes or props passed into the component from the parent and we can access them by stating props._____ (the name of the attribute)
-const eList = ({list, onRemoveItem}) => {
-  return (
-    <ul>
-      {/* can create another component called Item to further simplify the list component and keep each function separate */}
+// const eList = ({list, onRemoveItem}) => {
+//   return (
+//     <ul>
+//       {/* can create another component called Item to further simplify the list component and keep each function separate */}
 
-      {/* could use rest operator here in the signature of the .map() function as such:  .map(({objectId, ...item}) => etc. etc.)    but this is not as readable for a beginner dev (any maybe not even for another dev unfamiliar with the project) */}
-      {list.map((item) => ( 
-          <Item // could use spread operator here: <Item key={objectId} {...item}   but this comes at a cost of readability
-            // instead, have passed in all properties of the item object as props here and will use below in the <Item /> component as destructured properties that appear in the function siganature of <Item />
+//       {/* could use rest operator here in the signature of the .map() function as such:  .map(({objectId, ...item}) => etc. etc.)    but this is not as readable for a beginner dev (any maybe not even for another dev unfamiliar with the project) */}
+//       {list.map((item) => ( 
+//           <Item // could use spread operator here: <Item key={objectId} {...item}   but this comes at a cost of readability
+//             // instead, have passed in all properties of the item object as props here and will use below in the <Item /> component as destructured properties that appear in the function siganature of <Item />
+//             key={item.objectId}
+//             title={item.title}
+//             url={item.url}
+//             author={item.author}
+//             num_comments={item.num_comments}
+//             points={item.points}
+//             item={item}
+//             onRemoveItem={onRemoveItem}
+//           />
+//         )
+//       )}
+//     </ul>
+//   )
+// };
+
+// pre-defining the types for props passed into the List component
+type ListProps = {
+  list: Stories;
+  onRemoveItem: (item: Story) => void;
+};
+
+const List = ({list, onRemoveItem}: ListProps) => (
+    <ul>
+      {list.map((item: Story) => ( 
+          <Item 
             key={item.objectId}
             title={item.title}
             url={item.url}
@@ -319,32 +357,52 @@ const eList = ({list, onRemoveItem}) => {
         )
       )}
     </ul>
-  )
-};
-
-const List = (props) => 
-  // console.log('B: List') will always evaluate false, so the right-hand side of this operator will be executed (and the console will log what we want it to)
-  console.log('B: List') || (
-    <ul>
-      {props.list.map((item) => ( 
-          <Item 
-            key={item.objectId}
-            title={item.title}
-            url={item.url}
-            author={item.author}
-            num_comments={item.num_comments}
-            points={item.points}
-            item={item}
-            onRemoveItem={props.onRemoveItem}
-          />
-        )
-      )}
-    </ul>
   );
 
+// defining a Story type for use in the Item component in order to keep code DRY
+type Story = {
+  objectId?: string;
+  title?: string;
+  url: string;
+  author: string;
+  num_comments: number;
+  points: number;
+};
 
+type Stories = Array<Story>;
 
-const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) => {
+// we can even simplify things further by typing the ItemProps as below
+type ItemProps = {
+  item: Story;
+  onRemoveItem: (item: Story) => void;
+};
+
+const Item = ({item, onRemoveItem
+  // typing he passed in props as ItemProps (which are pre-typed above this component)
+}: ItemProps
+// {
+  // typing below is not DRY code because it has been duplicated, instead we can define a type outside of this component and then use it here
+  // item: {
+  //   objectId: string;
+  //   title: string;
+  //   url: string;
+  //   author: string;
+  //   num_comments: number;
+  //   points: number;
+  // };
+  // onRemoveItem: (item: {
+  //   objectId: string;
+  //   title: string;
+  //   url: string;
+  //   author: string;
+  //   num_comments: number;
+  //   points: number;
+  //   }) => void;  
+
+  // utilizing the pre-defined type Story here to keep code DRY; and then simplifying even further by defining ItemProps outside of this component and instituting above
+  // item: Story;
+  // onRemoveItem: (item: Story) => void;
+) => {
   // creating another handler function to call the function passed in as props from List which was passed down to list from App (this is a "normal handler")
   //const handleRemoveItem = () => {
     // in the book R2R, Robin passes 'item' from List by mapping several <Item> components per each item passed into the map function; but if I passed down each item's attributes separately as in {title, url, author, num_comments, points} how can I then pass these arguments to the onRemoveItem function for it to remove the affected HTML elements from view on the page??
@@ -377,15 +435,15 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
     <StyledItem>
       {/* <span style={{ width: '40%' }}> */}
       <StyledColumn>
-        <a href={url}>{title}</a>
+        <a href={item.url}>{item.title}</a>
       {/* </span> */}
       </StyledColumn>
       {/* <span style={{ width: '30%' }}>{author}</span> */}
-      <StyledColumn>{author}</StyledColumn>
+      <StyledColumn>{item.author}</StyledColumn>
       {/* <span style={{ width: '10%' }}>{num_comments}</span> */}
-      <StyledColumn>{num_comments}</StyledColumn>
+      <StyledColumn>{item.num_comments}</StyledColumn>
       {/* <span style={{ width: '10%' }}>{points}</span> */}
-      <StyledColumn>{points}</StyledColumn>
+      <StyledColumn>{item.points}</StyledColumn>
       {/* <span style={{ width: '10%' }}> */}
       <StyledColumn>
         {/* passing the handler declared above to the button as a function that should execute onClick */}
@@ -452,8 +510,24 @@ const Item = ({title, url, author, num_comments, points, item, onRemoveItem}) =>
 //   }
 // }
 
-const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocused}) => {
-  const inputRef = useRef();
+type InputWithLabelProps = {
+  id: string;
+  value: string;
+  type?: string;
+  onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isFocused?: boolean;
+  children: React.ReactNode;
+};
+
+const InputWithLabel = ({
+  id,
+  type='text',
+  children,
+  value,
+  onInputChange,
+  isFocused
+}: InputWithLabelProps ) => {
+  const inputRef = useRef<HTMLInputElement>(null!);
 
   useEffect(() => {
     if(isFocused && inputRef.current) {
@@ -484,7 +558,17 @@ const InputWithLabel = ({id, type='text', children, value, onInputChange, isFocu
   );
 };
 
-const SearchForm = ({ searchTerm, onSearchInput, onSearchSubmit }) => {
+type SearchFormProps = {
+  searchTerm: string;
+  onSearchInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSearchSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+}
+
+const SearchForm = ({
+  searchTerm,
+  onSearchInput,
+  onSearchSubmit 
+}: SearchFormProps ) => {
   return (
     // <form onSubmit={onSearchSubmit} className="search-form">      
     // <form onSubmit={onSearchSubmit} className={styles.searchForm}> 
