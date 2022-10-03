@@ -443,15 +443,24 @@ interface SortStates {
 
 const List = ({list, onRemoveItem}: ListProps) => {
   
-  // const sortStateKey = 'NONE' as string;
-  const [sort, setSort] = useState('NONE');
+  const [sort, setSort] = useState({
+    // implement an object to track the state of whether or not the column is sorted in ascending or descending order
+    sortKey: 'NONE',
+    isReverse: false,
+  });
 
   const handleSort = (sortKey: string) => {
-    setSort(sortKey);
+    // comparing the sortKey param with the sortKey in state (sort.sortKey) to determine if they are the same (if same, then it should reverse - but only if not already reversed)
+    const isReverse = sort.sortKey === sortKey && !sort.isReverse;
+    // setSort({ sortKey: sortKey, isReverse: isReverse });
+    // implement shorthand object initializer notation
+    setSort({ sortKey: sortKey, isReverse: isReverse });
   };
 
-  const sortFunction = SORTS[sort as keyof typeof SORTS];
-  const sortedList = sortFunction(list);
+  const sortFunction = SORTS[sort.sortKey as keyof typeof SORTS];
+  const sortedList = sort.isReverse 
+    ? sortFunction(list).reverse() 
+    : sortFunction(list);
 
   return (
     <ul>
