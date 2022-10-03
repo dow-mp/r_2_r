@@ -14,6 +14,7 @@ type Story = {
   title?: string;
   url?: string;
   author?: string;
+  created_at: string;
   num_comments?: number;
   points?: number;
 };
@@ -130,6 +131,19 @@ const StyledColumnTitle = styled.span`
 
 const StyledColumnAuthor = styled.span`
   width: 30%;
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  a {
+    color: inherit;
+  }
+`;
+
+const StyledColumnDate = styled.span`
+  width: 10%;
+  min-width: 100px;
   padding: 0 5px;
   white-space: nowrap;
   overflow: hidden;
@@ -329,6 +343,7 @@ const App = () => {
     try {
       const result = await axios.get(url)
         // this dispatch function is returned from the useReducer hook and it sets the state based on the action.type - whose logic is carried out in the reducer function (if action is type: x, do z) ...in this instance, when data is returned from the promise, update the state of stories variable to include the payload and change isLoading and isError booleans as defined in the storiesReducer function
+        console.log(result.data.hits);
       dispatchStories({type: ACTIONS.STORIES_FETCH_SUCCESS, payload: result.data.hits,});
     } catch {
       console.log(Error);
@@ -412,6 +427,7 @@ const SORTS : SortStates = {
   NONE: (list: Stories) => list,
   TITLE: (list: Stories) => sortBy(list, 'title'),
   AUTHOR: (list: Stories) => sortBy(list, 'author'),
+  DATE: (list: Stories) => sortBy(list, 'created_at'),
   COMMENTS: (list: Stories) => sortBy(list, 'num_comments').reverse(),
   POINTS: (list: Stories) => sortBy(list, 'points').reverse(),
 };
@@ -420,6 +436,7 @@ interface SortStates {
   NONE: Function;
   TITLE: Function;
   AUTHOR: Function;
+  DATE: Function;
   COMMENTS: Function;
   POINTS: Function;
 }
@@ -449,6 +466,11 @@ const List = ({list, onRemoveItem}: ListProps) => {
             Author
           </StyledButtonLarge>
         </StyledColumnAuthor>
+        <StyledColumnDate>
+          <StyledButtonLarge type="button" onClick={() => {handleSort("DATE")}}>
+            Date
+          </StyledButtonLarge>
+        </StyledColumnDate>
         <StyledColumnComments>          
           <StyledButtonLarge type="button" onClick={() => {handleSort("COMMENTS")}}>
             Comments
@@ -537,6 +559,7 @@ const Item = ({item, onRemoveItem
       </StyledColumnTitle>
       {/* <span style={{ width: '30%' }}>{author}</span> */}
       <StyledColumnAuthor>{item.author}</StyledColumnAuthor>
+      <StyledColumnAuthor>{new Date(item.created_at).toDateString().split(' ').slice(1).join(' ')}</StyledColumnAuthor>
       {/* <span style={{ width: '10%' }}>{num_comments}</span> */}
       <StyledColumnComments>{item.num_comments}</StyledColumnComments>
       {/* <span style={{ width: '10%' }}>{points}</span> */}
