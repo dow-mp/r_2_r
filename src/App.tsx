@@ -5,6 +5,7 @@ import axios from 'axios';
 import styled from 'styled-components';
 // // importing check mark svg for use as button "text" to dismiss articles
 import { ReactComponent as Check } from './check.svg';
+import { sortBy } from 'lodash';
 
 
 // defining a Story type for use in the Item component in order to keep code DRY
@@ -113,6 +114,67 @@ const StyledColumn = styled.span`
     color: inherit;
   }
 
+`;
+
+const StyledColumnTitle = styled.span`
+  width: 40%;
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  a {
+    color: inherit;
+  }
+`;
+
+const StyledColumnAuthor = styled.span`
+  width: 30%;
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  a {
+    color: inherit;
+  }
+`;
+
+const StyledColumnComments = styled.span`
+  width: 10%;
+  min-width: 100px;
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  a {
+    color: inherit;
+  }
+`;
+
+const StyledColumnPoints = styled.span`
+  width: 10%;
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  a {
+    color: inherit;
+  }
+`;
+
+const StyledColumnActions = styled.span`
+  width: 10%;
+  padding: 0 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  a {
+    color: inherit;
+  }
 `;
 
 const StyledButton = styled.button`
@@ -346,34 +408,63 @@ const App = () => {
   )
 };
 
-// pass in the props to the List component - we always pass in "props" because there may be several attributes or props passed into the component from the parent and we can access them by stating props._____ (the name of the attribute)
-// const eList = ({list, onRemoveItem}) => {
-//   return (
-//     <ul>
-//       {/* can create another component called Item to further simplify the list component and keep each function separate */}
+const SORTS : SortStates = {
+  NONE: (list: Stories) => list,
+  TITLE: (list: Stories) => sortBy(list, 'title'),
+  AUTHOR: (list: Stories) => sortBy(list, 'author'),
+  COMMENTS: (list: Stories) => sortBy(list, 'num_comments').reverse(),
+  POINTS: (list: Stories) => sortBy(list, 'points').reverse(),
+};
 
-//       {/* could use rest operator here in the signature of the .map() function as such:  .map(({objectID, ...item}) => etc. etc.)    but this is not as readable for a beginner dev (any maybe not even for another dev unfamiliar with the project) */}
-//       {list.map((item) => ( 
-//           <Item // could use spread operator here: <Item key={objectID} {...item}   but this comes at a cost of readability
-//             // instead, have passed in all properties of the item object as props here and will use below in the <Item /> component as destructured properties that appear in the function siganature of <Item />
-//             key={item.objectID}
-//             title={item.title}
-//             url={item.url}
-//             author={item.author}
-//             num_comments={item.num_comments}
-//             points={item.points}
-//             item={item}
-//             onRemoveItem={onRemoveItem}
-//           />
-//         )
-//       )}
-//     </ul>
-//   )
-// };
+interface SortStates {
+  NONE: Function;
+  TITLE: Function;
+  AUTHOR: Function;
+  COMMENTS: Function;
+  POINTS: Function;
+}
 
-const List = ({list, onRemoveItem}: ListProps) => (
+const List = ({list, onRemoveItem}: ListProps) => {
+  
+  // const sortStateKey = 'NONE' as string;
+  const [sort, setSort] = useState('NONE');
+
+  const handleSort = (sortKey: string) => {
+    setSort(sortKey);
+  };
+
+  const sortFunction = SORTS[sort as keyof typeof SORTS];
+  const sortedList = sortFunction(list);
+
+  return (
     <ul>
-      {list.map((item: Story) => ( 
+      <StyledItem>
+        <StyledColumnTitle>
+          <StyledButtonLarge type="button" onClick={() => {handleSort("TITLE")}}>
+            Title
+          </StyledButtonLarge>
+        </StyledColumnTitle>
+        <StyledColumnAuthor>
+          <StyledButtonLarge type="button" onClick={() => {handleSort("AUTHOR")}}>
+            Author
+          </StyledButtonLarge>
+        </StyledColumnAuthor>
+        <StyledColumnComments>          
+          <StyledButtonLarge type="button" onClick={() => {handleSort("COMMENTS")}}>
+            Comments
+          </StyledButtonLarge>
+        </StyledColumnComments>
+        <StyledColumnPoints>
+          <StyledButtonLarge type="button" onClick={() => {handleSort("POINTS")}}>
+            Points
+          </StyledButtonLarge>
+        </StyledColumnPoints>
+        <StyledColumnActions>
+            Actions
+        </StyledColumnActions>
+      </StyledItem>
+
+      {sortedList.map((item: Story) => ( 
           <Item 
             item={item}
             onRemoveItem={onRemoveItem}
@@ -381,7 +472,8 @@ const List = ({list, onRemoveItem}: ListProps) => (
         )
       )}
     </ul>
-  );
+  )
+};
 
 const Item = ({item, onRemoveItem
   // typing he passed in props as ItemProps (which are pre-typed above this component)
@@ -439,18 +531,18 @@ const Item = ({item, onRemoveItem
     // implement styled list item
     <StyledItem>
       {/* <span style={{ width: '40%' }}> */}
-      <StyledColumn>
+      <StyledColumnTitle>
         <a href={item.url}>{item.title}</a>
       {/* </span> */}
-      </StyledColumn>
+      </StyledColumnTitle>
       {/* <span style={{ width: '30%' }}>{author}</span> */}
-      <StyledColumn>{item.author}</StyledColumn>
+      <StyledColumnAuthor>{item.author}</StyledColumnAuthor>
       {/* <span style={{ width: '10%' }}>{num_comments}</span> */}
-      <StyledColumn>{item.num_comments}</StyledColumn>
+      <StyledColumnComments>{item.num_comments}</StyledColumnComments>
       {/* <span style={{ width: '10%' }}>{points}</span> */}
-      <StyledColumn>{item.points}</StyledColumn>
+      <StyledColumnPoints>{item.points}</StyledColumnPoints>
       {/* <span style={{ width: '10%' }}> */}
-      <StyledColumn>
+      <StyledColumnActions>
         {/* passing the handler declared above to the button as a function that should execute onClick */}
         {/* <button type="button" onClick={handleRemoveItem}> */}
         {/* another option - create in inline handler which binds arguments to the function for execution of the function with those given arguments */}
@@ -472,7 +564,7 @@ const Item = ({item, onRemoveItem
         {/* </button> */}
         </StyledButtonSmall>
       {/* </span> */}
-      </StyledColumn>
+      </StyledColumnActions>
     {/* </li> */}
     </StyledItem>
   )
@@ -553,8 +645,6 @@ const InputWithLabel = ({
     </>
   );
 };
-
-
 
 const SearchForm = ({
   searchTerm,
