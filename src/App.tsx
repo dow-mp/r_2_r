@@ -28,6 +28,7 @@ type ListProps = {
 
 type StoriesState = {
   data: Stories;
+  page: number;
   isLoading: boolean;
   isError: boolean;
 };
@@ -244,6 +245,11 @@ const ACTIONS = {
   STORIES_FETCH_SUCCESS: "STORIES_FETCH_SUCCESS",
 }
 
+const API_BASE = 'http://hn.algolia.com/api/v1';
+const API_SEARCH = '/search';
+const PARAM_SEARCH = 'query=';
+const PARAM_PAGE = 'page=';
+
 const API_ENDPOINT = 'http://hn.algolia.com/api/v1/search?query=';
 
 // initiate building re-useable custom hook to encompass functionality of useState and useEffect hooks
@@ -276,9 +282,14 @@ const storiesReducer = (
     case ACTIONS.STORIES_FETCH_SUCCESS:
       return {
         ...state,
-        data: action.payload,
         isLoading: false,
         isError: false,
+        data: 
+          action.payload.page === 0 
+          ? action.payload.list
+          : state.data.concat(action.payload.list),
+        page: action.payload.page,
+
       };
     case ACTIONS.STORIES_FETCH_FAILURE:
       return {
@@ -301,14 +312,16 @@ const storiesReducer = (
 
 
 const extractSearchTerm = (url : string) => {
-  return url.replace(API_ENDPOINT, '');
+  return url
+    .substring(url.lastIndexOf('?') + 1, url.lastIndexOf('&'))
+    .replace(PARAM_SEARCH, '');
 }
 
 const getLastSearches = (urls : Array<string>) => {
   return urls.slice(-6).slice(0, -1).map(extractSearchTerm);
 }
 
-const getUrl = (searchTerm : string) => `${API_ENDPOINT}${searchTerm}`;
+const getUrl = (searchTerm : string, page : number) => `${API_BASE}${API_SEARCH}?${PARAM_SEARCH}${searchTerm}&${PARAM_PAGE}${page}`;
 
 const App = () => {
 
@@ -318,11 +331,12 @@ const App = () => {
     ''
   );
 
-  const [urls, setUrls] = useState([`${API_ENDPOINT}${searchTerm}`,]);
+  const [urls, setUrls] = useState([getUrl(searchTerm, 0)]);
 
   const [stories, dispatchStories] = useReducer(
     storiesReducer, 
     { data: [],
+      page: 0,
       isLoading: false,
       isError: false
     });
@@ -334,7 +348,14 @@ const App = () => {
     try {
       const lastUrl = urls[urls.length - 1];
       const result = await axios.get(lastUrl)
-      dispatchStories({type: ACTIONS.STORIES_FETCH_SUCCESS, payload: result.data.hits,});
+      console.log(result.data); // want to check the data structure out to determine how to type the properties
+      dispatchStories({
+        type: ACTIONS.STORIES_FETCH_SUCCESS,
+        payload: {
+          list: result.data.hits,
+          page: result.data.page,
+        }
+      });
     } catch {
       console.log(Error);
       dispatchStories({ type: ACTIONS.STORIES_FETCH_FAILURE }); // dispatch the failure action type to the storiesReducer function to return state changes as defined in the function
@@ -350,14 +371,14 @@ const App = () => {
     setSearchTerm(e.target.value);
   };
 
-  const handleSearch = (searchTerm : string) => {
-    const url = getUrl(searchTerm);
+  const handleSearch = (searchTerm : string, page : number) => {
+    const url = getUrl(searchTerm, page);
     setUrls(urls.concat(url));
   }
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    return handleSearch(searchTerm);
+    return handleSearch(searchTerm, 0);
   };
 
   const handleRemoveStory = useCallback((item: Story) => {
@@ -368,10 +389,17 @@ const App = () => {
   }, []);
 
   const handleLastSearch = (searchTerm : string) => {
-    return handleSearch(searchTerm);
+    setSearchTerm(searchTerm);
+    return handleSearch(searchTerm, 0);
   };
 
   const lastSearches = getLastSearches(urls);
+
+  const handleMore = () => {
+    const lastUrl = urls[urls.length - 1];
+    const searchTerm = extractSearchTerm(lastUrl);
+    return handleSearch(searchTerm, stories.page + 1);
+  };
 
   return (
     <StyledContainer>
@@ -396,12 +424,20 @@ const App = () => {
 
         <hr />
         {stories.isError && <p>Something went wrong...</p>}
-        { stories.isLoading ? <p>Loading....</p> : 
-          <List 
+
+        <List 
             list={stories.data} 
             onRemoveItem={handleRemoveStory}
           />
+
+
+        { stories.isLoading 
+          ? <p>Loading....</p> 
+          : <StyledButtonLarge type="button" onClick={handleMore}>
+              More
+            </StyledButtonLarge>
         }
+
       </>
     </StyledContainer>
   )
@@ -489,72 +525,27 @@ const List = ({list, onRemoveItem}: ListProps) => {
 };
 
 const Item = ({ item, onRemoveItem }: ItemProps) => {
-  // creating another handler function to call the function passed in as props from List which was passed down to list from App (this is a "normal handler")
-  //const handleRemoveItem = () => {
-    // in the book R2R, Robin passes 'item' from List by mapping several <Item> components per each item passed into the map function; but if I passed down each item's attributes separately as in {title, url, author, num_comments, points} how can I then pass these arguments to the onRemoveItem function for it to remove the affected HTML elements from view on the page??
-    // from the book: 
-    /* const Item = ({item, onRemoveItem}) => {
-        return (
-          <li>
-            <span>
-              <a href={item.url}>{item.title}</a>
-            </span>
-            <span>{item.author}</span>
-            <span>{item.num_comments}</span>
-            <span>{item.points}</span>
-            <span>
-              <button type="button" onClick={() => onRemoveItem(item)}> OR <button type="button" onClick={onRemoveItem.bind(null, item)}> OR <button type="button" onClick={handleRemoveItem}>
-                Dismiss
-              </button>  
-            </span>
-          </li>
-        )
-    }; */
-   // onRemoveItem(title, url, author, num_comments, points);
- // }
   return (
-    // <li className="item">
-    // implement css module
-    // <li className={styles.item}>
-    // implement styled list item
     <StyledItem>
-      {/* <span style={{ width: '40%' }}> */}
+
       <StyledColumnTitle>
         <a href={item.url}>{item.title}</a>
-      {/* </span> */}
       </StyledColumnTitle>
-      {/* <span style={{ width: '30%' }}>{author}</span> */}
+
       <StyledColumnAuthor>{item.author}</StyledColumnAuthor>
       <StyledColumnAuthor>{new Date(item.created_at).toDateString().split(' ').slice(1).join(' ')}</StyledColumnAuthor>
-      {/* <span style={{ width: '10%' }}>{num_comments}</span> */}
       <StyledColumnComments>{item.num_comments}</StyledColumnComments>
-      {/* <span style={{ width: '10%' }}>{points}</span> */}
       <StyledColumnPoints>{item.points}</StyledColumnPoints>
-      {/* <span style={{ width: '10%' }}> */}
+
       <StyledColumnActions>
-        {/* passing the handler declared above to the button as a function that should execute onClick */}
-        {/* <button type="button" onClick={handleRemoveItem}> */}
-        {/* another option - create in inline handler which binds arguments to the function for execution of the function with those given arguments */}
-        {/* <button type="button" onClick={onRemoveItem.bind(null, title, url, author, num_comments, points)}> */}
-        {/* option 3 - an alternative inline handler function using an anonymous function to allow us to utilize the function with an argument */}
-        {/* <button */}
         <StyledButtonSmall
           type="button"
           onClick={() => onRemoveItem(item)}
-          // className="button button_small"
-          // implement css module - requires string interpolation via template literal for multiple class names via dot notation
-          // an alternative is the install and import the classnames library and use the following syntax: 
-          // className={cs(styles.button, styles.buttonSmall)}
-          // classnames library also allows for conditional styling - the left hand side of the object's property must be used as a computed property name and is only applied if the right-hand side evaluates true as follows:
-          // className={cs(styles.button, { [styles.buttonLarge]: isLarge})}
-          // className={`${styles.button} ${styles.buttonSmall}`}
         >
           <Check height="18px" width="18px" />
-        {/* </button> */}
         </StyledButtonSmall>
-      {/* </span> */}
       </StyledColumnActions>
-    {/* </li> */}
+
     </StyledItem>
   )
 }
